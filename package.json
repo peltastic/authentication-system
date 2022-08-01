@@ -2,7 +2,7 @@
   "name": "auth-V1",
   "version": "1.0.0",
   "main": "index.js",
-  "repository": "https://github.com/blackgik/authentication-sytem.git",
+  "repository": "https://github.com/peltastic/authentication-system.git",
   "author": "peltastic <onosogapelumi@gmail.com>",
   "license": "MIT",
   "scripts": {
