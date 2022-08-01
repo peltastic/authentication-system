@@ -1,11 +1,16 @@
+import dotenv from "dotenv";
+dotenv.config();
+
 export default {
-	port: process.env.PORT,
-	dbUri: process.env.DB_URI,
-	saltWorkFactor: Number(process.env.SALT_WORK_FACTOR),
-	accessTokenLT: process.env.ACCESS_TOKEN_LT,
-	refreshTokenLT: process.env.REFRESH_TOKEN_LT,
-	privateKey: process.env.PRIVATE_KEY,
-	publicKey: process.env.PUBLIC_KEY,
-	sendgridKey: process.env.SENDGRID_API_KEY,
-	emailSender: process.env.EMAIL_SENDER,
+  port: 3000,
+  logLevel: "info",
+  dbUri: process.env.DB_URI,
+  smtp: {
+    host: process.env.SMTP_HOST,
+    port: process.env.SMTP_PORT,
+    user: process.env.SMTP_USER,
+    pass: process.env.SMTP_PASSWORD,
+    secure: true,
+  },
 };
+

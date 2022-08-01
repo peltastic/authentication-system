@@ -1,61 +1,37 @@
-import sgMail from "@sendgrid/mail";
+import nodemailer, {SendMailOptions} from "nodemailer";
 import config from "config";
-import { BadRequestError } from "../../lib/appErrors";
-import logger from "./logger";
-sgMail.setApiKey(config.get<string>("sendgridKey"));
+import log from "./logger";
+// async function createTestCreds() {
+//   const creds = await nodemailer.createTestAccount();
 
-type msgData = {
-	to: string;
-	from: string;
-	subject: string;
-	text: string;
-	html: string;
-};
+//   console.log({ creds });
+// }
 
-async function emailVerification(
-	email: string,
-	subject: string,
-	token: string,
-) {
-	const msg: msgData = {
-		to: email,
-		from: config.get<string>("emailSender"),
-		subject,
-		text: `HELLO THERE,\n please, kindly copy the link below to verify your email\n\n http://localhost:3000/api/v1/auth/verfity-token?token=${token}`,
-		html: `<strong>Hello There,</strong>
-               <p>please, kindly click <a href="http://localhost:3000/api/v1/auth/verfity-token?token=${token}"><b>here<b></a> to verify account </p><br>
-               <p>you can also copy this link and post on your browser<em>http://localhost:3000/api/v1/auth/verfity-token?token=${token}<em></p>`,
-	};
+// createTestCreds();
+const smtp = config.get<{
+  user: string;
+  pass: string;
+  host: string;
+  port: number;
+  secure: boolean;
+}>("smtp");
 
-	try {
-		await sgMail.send(msg);
-		logger.info("Email sent successfully");
-	} catch (err: any) {
-		logger.error(err);
-	}
+const transporter = nodemailer.createTransport({
+  ...smtp,
+  auth: {
+    user: smtp.user,
+    pass: smtp.pass,
+  },
+});
+
+async function sendEmail(payload: SendMailOptions) {
+  transporter.sendMail(payload, (err, info) => {
+    if (err) {
+      log.error(err, "Error sending email");
+      return;
+    }
+    log.info("Message sent: " + info.messageId + info);
+  });
 }
 
-async function passwordValidationMail(
-	email: string,
-	subject: string,
-	token: string,
-) {
-	const msg: msgData = {
-		to: email,
-		from: config.get<string>("emailSender"),
-		subject,
-		text: `HELLO THERE,\n please, kindly copy the link below to change your email\n\n http://localhost:3000/api/v1/auth/reset-password?token=${token}`,
-		html: `<strong>Hello There,</strong>
-               <p>please, kindly click <a href="http://localhost:3000/api/v1/auth/reset-password?token=${token}"><b>here<b></a> to verify account </p><br>
-               <p>you can also copy this link and post on your browser<em>http://localhost:3000/api/v1/auth/reset-password?token=${token}<em></p>`,
-	};
-
-	try {
-		await sgMail.send(msg);
-		logger.info("Email sent successfully");
-	} catch (err: any) {
-		logger.error(err);
-	}
-}
-
-export { emailVerification, passwordValidationMail };
+export default sendEmail;
