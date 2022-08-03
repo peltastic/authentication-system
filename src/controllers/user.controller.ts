@@ -1,13 +1,23 @@
 import { Request, Response } from "express";
-import { CreateUserInput, VerifyUserInput } from "../schema/user.schema";
-import { createUser, findUserById } from "../services/user.service";
+import {
+  CreateUserInput,
+  ForgotPasswordInput,
+  VerifyUserInput,
+  ResetPasswordInput,
+} from "../schema/user.schema";
+import {
+  createUser,
+  findUserByEmail,
+  findUserById,
+} from "../services/user.service";
 import sendEmail from "../utils/mailer";
+import log from "../utils/logger";
+import { nanoid } from "nanoid";
 
 export async function createUserHandler(
   req: Request<{}, {}, CreateUserInput>,
   res: Response
 ) {
-  console.log("goinggggg");
   const body = req.body;
 
   try {
@@ -56,6 +66,59 @@ export async function verifyUserHandler(
   return res.send("Could Not Verify User");
 }
 
-export async function forgotPasswordHandler(req: Request, res: Response) {
-  
+export async function forgotPasswordHandler(
+  req: Request<{}, {}, ForgotPasswordInput>,
+  res: Response
+) {
+  const message =
+    "If a user with that email is registered you will receive a password reset email";
+
+  const { email } = req.body;
+  const user = await findUserByEmail(email);
+  if (!user) {
+    log.debug(`user with email ${email} does not exists`);
+    return res.send(message);
+  }
+  if (!user.verified) {
+    return res.send("User is nor verified");
+  }
+
+  const passwordResetCode = nanoid();
+
+  user.passwordResetCode = passwordResetCode;
+  await user.save();
+
+  await sendEmail({
+    to: user.email,
+    from: "pelz@gmailcom",
+    subject: "Reset your Password",
+    text: `Passowrd reset code: ${passwordResetCode}. Id ${user._id}`,
+  });
+  log.debug(`Password reset email sent to ${email}`);
+  return res.send(message);
 }
+
+export async function resetPasswordHandler(
+  req: Request<ResetPasswordInput["params"], {}, ResetPasswordInput["body"]>,
+  res: Response
+) {
+  const { id, passwordResetCode } = req.params;
+  const { password } = req.body;
+  const user = await findUserById(id);
+  if (
+    !user ||
+    !user.passwordResetCode ||
+    user.passwordResetCode !== passwordResetCode
+  ) {
+    return res.status(400).send("Could not Reset password");
+  }
+  user.passwordResetCode = null;
+  user.password = password;
+  await user.save();
+
+  return res.send("Sucessfully updated password");
+}
+
+export async function getCurrentUserHandler(req: Request, res: Response) {
+  return res.send(res.locals.user);
+} 
